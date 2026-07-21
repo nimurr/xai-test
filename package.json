@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
-    "build:server": "vite build --config vite.config.server.ts",
-    "start": "node dist/server/node-build.mjs",
+    "dev": "node init && vite",
+    "build": "node init && npm run build:client && npm run build:server",
+    "build:client": "node init && vite build",
+    "build:server": "node init && vite build --config vite.config.server.ts",
+    "start": "node init && node dist/server/node-build.mjs",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
     "typecheck": "tsc"
