@@ -1,143 +1,103 @@
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, Icosahedron, Points, PointMaterial } from "@react-three/drei";
-import { motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
-import { ArrowDownRight, ArrowRight, Bell, Box, ChevronDown, Command, FileText, Grid2X2, Layers3, MoreHorizontal, Plus, Search, Settings2, Share2, Sparkles, WandSparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import * as THREE from "three";
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUp, Check, Clipboard, Copy, Menu, Moon, MoreHorizontal, Paperclip, Plus, Search, Send, Sparkles, Sun, Trash2, X, Zap } from "lucide-react";
 
-function SignalObject() {
-  const group = useRef<THREE.Group>(null);
-  const positions = useMemo(() => {
-    const points = new Float32Array(1200 * 3);
-    for (let i = 0; i < points.length; i += 3) {
-      const radius = 2.3 + Math.random() * 1.5;
-      const angle = Math.random() * Math.PI * 2;
-      const height = (Math.random() - 0.5) * 4;
-      points[i] = Math.cos(angle) * radius + (Math.random() - 0.5) * 0.65;
-      points[i + 1] = height;
-      points[i + 2] = Math.sin(angle) * radius;
-    }
-    return points;
-  }, []);
+type Role = "user" | "assistant";
+type Message = { id: number; role: Role; content: string; time: string; error?: boolean };
+type Conversation = { id: number; title: string; group: string; preview: string };
 
-  useFrame(({ clock, pointer }) => {
-    if (!group.current) return;
-    group.current.rotation.y = clock.getElapsedTime() * 0.12 + pointer.x * 0.23;
-    group.current.rotation.x = pointer.y * 0.13;
-  });
-
-  return (
-    <group ref={group}>
-      <Float speed={2} rotationIntensity={0.35} floatIntensity={0.45}>
-        <Icosahedron args={[1.76, 2]}>
-          <meshBasicMaterial color="#7d6cf3" wireframe transparent opacity={0.42} />
-        </Icosahedron>
-        <Icosahedron args={[1.34, 1]}>
-          <meshBasicMaterial color="#31d4ff" wireframe transparent opacity={0.18} />
-        </Icosahedron>
-      </Float>
-      <Points positions={positions} stride={3} frustumCulled={false}>
-        <PointMaterial transparent color="#92edff" size={0.024} sizeAttenuation depthWrite={false} opacity={0.74} />
-      </Points>
-    </group>
-  );
-}
-
-function HeroScene() {
-  return <Canvas camera={{ position: [0, 0, 8], fov: 48 }} dpr={[1, 1.5]}><SignalObject /></Canvas>;
-}
-
-const stages = [
-  { id: "01", title: "Ingest", note: "Raw signal", copy: "Pull fragmented sources into a single, living context layer.", icon: Layers3 },
-  { id: "02", title: "Analyze", note: "Structured intelligence", copy: "Map relationships, detect change, and expose what matters now.", icon: Sparkles },
-  { id: "03", title: "Generate", note: "Actionable output", copy: "Turn decisions into precisely scoped work — already in motion.", icon: WandSparkles },
+const conversations: Conversation[] = [
+  { id: 1, title: "Q3 launch strategy", group: "Today", preview: "Help me turn these signals into a launch plan..." },
+  { id: 2, title: "Analyze user feedback", group: "Today", preview: "I found three themes across the latest calls..." },
+  { id: 3, title: "Competitive landscape", group: "Yesterday", preview: "The market is shifting toward context-aware..." },
+  { id: 4, title: "Rewrite product narrative", group: "Yesterday", preview: "Here is a tighter version of the story..." },
+  { id: 5, title: "Customer research synthesis", group: "Previous 7 days", preview: "The strongest pattern in the research is..." },
 ];
 
-function FlowVisual({ active }: { active: number }) {
-  const paths = [
-    "M0 83 C24 83 25 32 47 47 S66 124 90 86 S113 28 142 64 S170 118 192 76 S222 32 240 84 S266 126 291 62 S324 26 350 78 S379 116 400 50",
-    "M0 92 H55 V45 H110 V112 H166 V26 H222 V82 H279 V51 H337 V102 H400",
-    "M0 86 H298 L265 53 M298 86 L265 119",
-  ];
-  return (
-    <svg viewBox="0 0 400 150" className="h-32 w-full overflow-visible" fill="none">
-      {[0, 1, 2].map((i) => <motion.path key={i} d={paths[i]} stroke={i === active ? "url(#signal)" : "#2b2f3a"} strokeWidth={i === active ? 3 : 1} initial={false} animate={{ opacity: i === active ? 1 : 0.12 }} transition={{ duration: 0.55 }} />)}
-      <defs><linearGradient id="signal" x1="0" x2="400" gradientUnits="userSpaceOnUse"><stop stopColor="#7567ee"/><stop offset="1" stopColor="#25d8ff"/></linearGradient></defs>
-    </svg>
-  );
+const initialMessages: Message[] = [
+  { id: 1, role: "user", time: "10:42 AM", content: "I have customer interviews, product analytics, and competitor notes scattered across my workspace. What should I focus on for our Q3 launch?" },
+  { id: 2, role: "assistant", time: "10:42 AM", content: `## Your clearest launch signal
+
+Across **248 product feedback items**, 34 customer calls, and the competitive set, one opportunity is unusually consistent:
+
+> Teams don't need more features — they need to reach value faster.
+
+I'd focus your Q3 launch around three moves:
+
+1. **Lead with time-to-value.** Make the first meaningful outcome visible in the first session.
+2. **Prove the workflow.** Show the path from raw context to a decision, not a feature list.
+3. **Create a feedback loop.** Turn launch conversations into structured signals for the next iteration.
+
+
+the launch thesis could be as simple as:
+
+
+do something remarkable with the context you already have
+`, },
+];
+
+function formatTime() { return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date()); }
+
+function CodeBlock({ language, value }: { language?: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => { await navigator.clipboard?.writeText(value); setCopied(true); window.setTimeout(() => setCopied(false), 1600); };
+  return <div className="code-block"><div className="code-header"><span><i />{language || "text"}</span><button onClick={copy}>{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? "Copied" : "Copy"}</button></div><SyntaxHighlighter language={language || "text"} style={oneDark} customStyle={{ margin: 0, padding: "16px", background: "transparent", fontSize: "12px", lineHeight: 1.7 }} wrapLongLines>{value}</SyntaxHighlighter></div>;
 }
 
-function Dashboard() {
-  const [tab, setTab] = useState("Overview");
-  const tabs = ["Overview", "Research", "Automations"];
-  return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
-        <div className="brand-mark"><span /><span /><span /></div>
-        <div className="side-icons"><Grid2X2 /><FileText /><Layers3 /><Box /></div>
-        <div className="side-icons bottom"><Settings2 /></div>
-      </aside>
-      <div className="dashboard-main">
-        <header className="dashboard-topbar">
-          <div className="crumb"><span>Workspace</span><ChevronDown size={13}/><b>Product intelligence</b></div>
-          <div className="top-actions"><button><Search size={15}/><span>Search</span><kbd>⌘ K</kbd></button><button className="avatar">NM</button></div>
-        </header>
-        <main className="dashboard-content">
-          <div className="dashboard-title"><div><span className="eyebrow">SIGNAL ROOM</span><h3>Product intelligence</h3><p>Live context for your next decision.</p></div><button className="new-button"><Plus size={15}/> New brief</button></div>
-          <div className="dashboard-tabs">{tabs.map((item) => <button onClick={() => setTab(item)} className={tab === item ? "active" : ""} key={item}>{item}</button>)}</div>
-          <motion.div key={tab} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="dashboard-grid">
-            <section className="panel signal-panel"><div className="panel-heading"><div><span>DECISION SIGNAL</span><h4>{tab === "Overview" ? "Confidence is compounding" : tab === "Research" ? "Evidence is connected" : "Flows are ready to run"}</h4></div><MoreHorizontal size={18}/></div><div className="stat-line"><strong>{tab === "Automations" ? "12" : "87"}<small>{tab === "Automations" ? " active paths" : "% decision confidence"}</small></strong><em>+18.4%</em></div><div className="chart"><i/><i/><i/><i/><i/><i/><svg viewBox="0 0 530 130" preserveAspectRatio="none"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#796bf1" stopOpacity=".35"/><stop offset="1" stopColor="#796bf1" stopOpacity="0"/></linearGradient></defs><path d="M0 112 C30 104 35 90 63 94 S95 102 120 70 S156 92 183 68 S211 80 241 43 S274 56 302 37 S335 57 359 45 S394 59 417 27 S449 47 475 18 S502 33 530 7 L530 130 L0 130Z" fill="url(#chartFill)"/><path d="M0 112 C30 104 35 90 63 94 S95 102 120 70 S156 92 183 68 S211 80 241 43 S274 56 302 37 S335 57 359 45 S394 59 417 27 S449 47 475 18 S502 33 530 7" stroke="#80e9ff" strokeWidth="2" fill="none"/></svg></div></section>
-            <section className="panel pulse-panel"><div className="panel-heading"><div><span>ACTIVITY PULSE</span><h4>Signals moving now</h4></div><button><MoreHorizontal size={18}/></button></div>{[["Buyer research", "12 sources merged", "now"], ["Launch narrative", "Brief generated", "8m"], ["Risk monitor", "3 changes detected", "24m"]].map(([name, detail, time], i) => <div className="activity" key={name}><div className={`activity-dot d${i}`}/><div><b>{name}</b><small>{detail}</small></div><time>{time}</time></div>)}</section>
-            <section className="panel source-panel"><div className="panel-heading"><div><span>CONNECTED CONTEXT</span><h4>Sources</h4></div><button className="soft-button">View all</button></div>{["Product feedback", "Customer calls", "Competitive intel"].map((source, i) => <div className="source" key={source}><div className={`source-icon s${i}`}>{i === 0 ? "▦" : i === 1 ? "◌" : "◇"}</div><span>{source}</span><small>{[248, 34, 17][i]} items</small><ArrowRight size={14}/></div>)}</section>
-            <section className="panel brief-panel"><div className="brief-symbol"><Sparkles size={16}/></div><span>NEXT BEST ACTION</span><h4>Shape the launch message around <mark>time-to-value</mark>.</h4><p>Evidence shows this is the clearest differentiator in high-intent calls.</p><button>Open generated brief <ArrowDownRight size={15}/></button></section>
-          </motion.div>
-        </main>
-      </div>
-    </div>
-  );
+function MessageBody({ content }: { content: string }) {
+  return <ReactMarkdown components={{ code({ className, children, ...props }) { const match = /language-(\w+)/.exec(className || ""); const value = String(children).replace(/\n$/, ""); return match ? <CodeBlock language={match[1]} value={value} /> : <code className="inline-code" {...props}>{children}</code>; }, blockquote({ children }) { return <blockquote>{children}</blockquote>; }, h2({ children }) { return <h2>{children}</h2>; }, strong({ children }) { return <strong>{children}</strong>; } }}>{content}</ReactMarkdown>;
 }
+
+function TypingIndicator() { return <div className="typing"><span /><span /><span /><em>Thinking through your workspace...</em></div>; }
 
 export default function Index() {
-  const [activeStage, setActiveStage] = useState(0);
-  const cursorX = useMotionValue(0);
-  const cursorY = useMotionValue(0);
-  const springX = useSpring(cursorX, { damping: 26, stiffness: 180 });
-  const springY = useSpring(cursorY, { damping: 26, stiffness: 180 });
-  const { scrollYProgress } = useScroll();
-  const orbScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.7]);
-  const page = useRef<HTMLDivElement>(null);
+  const [dark, setDark] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeConversation, setActiveConversation] = useState(1);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [input, setInput] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-    const context = gsap.context(() => {
-      gsap.to(".hero-scene", { y: 90, opacity: 0.32, scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true } });
-      gsap.fromTo(".flow-canvas", { opacity: 0.35, x: 50 }, { opacity: 1, x: 0, scrollTrigger: { trigger: ".flow-section", start: "top 70%", end: "center 55%", scrub: true } });
-    }, page);
-    return () => context.revert();
-  }, []);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, generating]);
+  useEffect(() => { document.documentElement.dataset.theme = dark ? "dark" : "light"; }, [dark]);
 
-  return (
-    <div ref={page} className="xai-page" onMouseMove={(e) => { cursorX.set(e.clientX); cursorY.set(e.clientY); }}>
-      <motion.div className="cursor-glow" style={{ left: springX, top: springY }} />
-      <header className="site-header"><button className="wordmark" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}><span className="logo-x">x</span><span>ai</span></button><nav><button onClick={() => document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" })}>Platform</button><button onClick={() => document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth" })}>Workspace</button><button onClick={() => document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" })}>Changelog</button></nav><button className="header-cta" onClick={() => document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth" })}>Enter Xai <ArrowRight size={15}/></button></header>
+  const submit = (value = input) => {
+    const trimmed = value.trim();
+    if (!trimmed || generating) return;
+    setError(false);
+    setMessages((current) => [...current, { id: Date.now(), role: "user", content: trimmed, time: formatTime() }]);
+    setInput("");
+    setGenerating(true);
+    window.setTimeout(() => {
+      setGenerating(false);
+      setMessages((current) => [...current, { id: Date.now() + 1, role: "assistant", time: formatTime(), content: `## I found a useful angle\n\nYour question is connected to the **time-to-value** signal already emerging in this workspace. I'd structure the next step around a small, testable move:\n\n- Gather the five highest-intent customer examples\n- Compare their first successful outcome\n- Turn the pattern into one launch message\n\nThat gives the team a clear story to validate instead of another broad strategy doc.\n\n\`\`\`json\n{\n  "signal": "time-to-value",\n  "confidence": 0.87,\n  "next_step": "validate with 5 customers"\n}\n\`\`\`` }]);
+    }, 1800);
+  };
 
-      <main>
-        <section className="hero">
-          <div className="hero-grid" />
-          <motion.div className="hero-copy" style={{ scale: orbScale }}><motion.div className="announcement" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}><span className="live-dot"/> INTELLIGENCE, IN MOTION <ArrowRight size={13}/></motion.div><h1>See the signal.<br/><em>Move with certainty.</em></h1><p>Xai turns the constant noise of your business into a living intelligence system — context that thinks ahead, so your team can too.</p><div className="hero-buttons"><button className="primary-button" onClick={() => document.getElementById("workspace")?.scrollIntoView({ behavior: "smooth" })}>Explore the workspace <ArrowDownRight size={16}/></button><button className="text-button" onClick={() => document.getElementById("flow")?.scrollIntoView({ behavior: "smooth" })}>See how it works <ArrowRight size={16}/></button></div></motion.div>
-          <div className="hero-scene"><HeroScene /></div>
-          <div className="hero-bottom"><span>SCROLL TO COMPOSE THE SIGNAL</span><div className="scroll-line"><i/></div><span>01 — 03</span></div>
-        </section>
+  const newChat = () => { setActiveConversation(0); setMessages([]); setInput(""); setSidebarOpen(false); };
+  const selectChat = (id: number) => { setActiveConversation(id); setMessages(id === 1 ? initialMessages : [{ id: Date.now(), role: "assistant", time: formatTime(), content: `## ${conversations.find((item) => item.id === id)?.title || "New conversation"}\n\nI’m ready to work with the signals in your workspace. What would you like to understand?` }]); setSidebarOpen(false); };
 
-        <section id="flow" className="flow-section"><div className="section-intro"><span className="eyebrow">THE INTELLIGENCE ENGINE</span><h2>Chaos enters.<br/>Clarity leaves.</h2><p>One continuous system that transforms raw inputs into clear, compounding decisions.</p></div><div className="flow-layout"><div className="flow-stages">{stages.map((stage, index) => { const Icon = stage.icon; return <button key={stage.id} className={activeStage === index ? "flow-stage active" : "flow-stage"} onMouseEnter={() => setActiveStage(index)} onFocus={() => setActiveStage(index)} onClick={() => setActiveStage(index)}><span className="stage-number">{stage.id}</span><div><span className="stage-note">{stage.note}</span><h3>{stage.title}<Icon size={19}/></h3><p>{stage.copy}</p></div></button>; })}</div><div className="flow-canvas"><div className="flow-orb"><FlowVisual active={activeStage}/><span>{stages[activeStage].note}</span></div><div className="flow-metrics"><div><b>32</b><span>sources<br/>connected</span></div><div><b>4.8×</b><span>faster to<br/>insight</span></div></div></div></div></section>
-
-        <section id="workspace" className="workspace-section"><div className="workspace-header"><div><span className="eyebrow">THE XAI WORKSPACE</span><h2>Where every signal<br/>finds its next move.</h2></div><p>A calm, exacting place for the work that changes what happens next.</p></div><motion.div initial={{ opacity: 0, y: 34 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.16 }} transition={{ duration: 0.8 }}><Dashboard /></motion.div></section>
-
-        <section className="closing-section"><div className="closing-grain"/><span className="eyebrow">INTELLIGENCE, COMPOSED</span><h2>The next move<br/>is already visible.</h2><button className="primary-button">Build with Xai <ArrowRight size={16}/></button></section>
-      </main>
-      <footer><div className="wordmark"><span className="logo-x">x</span><span>ai</span></div><span>© 2025 Xai Systems</span><span>Designed for decisive teams.</span></footer>
-    </div>
-  );
+  return <div className={`chat-app ${dark ? "is-dark" : "is-light"}`}>
+    <AnimatePresence>{sidebarOpen && <motion.button className="sidebar-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" />}</AnimatePresence>
+    <aside className={`chat-sidebar ${sidebarOpen ? "open" : ""}`}>
+      <div className="sidebar-head"><button className="chat-brand" onClick={newChat}><span className="brand-glyph">x</span><span>ai</span></button><button className="close-sidebar" onClick={() => setSidebarOpen(false)}><X size={17}/></button></div>
+      <button className="new-chat" onClick={newChat}><Plus size={15}/> New conversation <kbd>⌘ K</kbd></button>
+      <div className="history-search"><Search size={14}/><input placeholder="Search conversations" /></div>
+      <div className="history-list">{["Today", "Yesterday", "Previous 7 days"].map((group) => <div className="history-group" key={group}><span className="history-label">{group}</span>{conversations.filter((item) => item.group === group).map((conversation) => <button className={`history-item ${activeConversation === conversation.id ? "active" : ""}`} onClick={() => selectChat(conversation.id)} key={conversation.id}><span>{conversation.title}</span><small>{conversation.preview}</small></button>)}</div>)}</div>
+      <div className="sidebar-bottom"><button><Sparkles size={15}/> Explore Xai</button><button><Trash2 size={15}/> Clear conversations</button><div className="user-profile"><div className="profile-avatar">NR</div><div><b>Nimur Rahman</b><small>Personal workspace</small></div><MoreHorizontal size={16}/></div></div>
+    </aside>
+    <section className="chat-main">
+      <header className="chat-header"><div className="header-left"><button className="menu-button" onClick={() => setSidebarOpen(true)}><Menu size={19}/></button><div className="thread-title"><span className="status-dot"/><div><b>{activeConversation === 1 ? "Q3 launch strategy" : activeConversation === 0 ? "New conversation" : conversations.find((item) => item.id === activeConversation)?.title}</b><small>Private workspace · Xai Intelligence</small></div></div></div><div className="header-actions"><button title="Search"><Search size={17}/></button><button title="Share"><span className="share-icon">↗</span></button><button title="Toggle theme" onClick={() => setDark((value) => !value)}>{dark ? <Sun size={17}/> : <Moon size={17}/>}</button><button title="More"><MoreHorizontal size={18}/></button></div></header>
+      <main className="conversation" aria-live="polite"><div className="conversation-inner"><div className="welcome"><div className="welcome-mark"><Zap size={18}/></div><span>THREAD STARTED TODAY</span></div><div className="messages">{messages.length === 0 && <div className="empty-state"><h1>What can I help you <em>see?</em></h1><p>Bring your questions, signals, and scattered context. Xai will help you turn them into a clear next move.</p><div className="suggestion-grid"><button onClick={() => submit("Summarize the strongest signal in my workspace")}>Summarize my strongest signal <ArrowUp size={14}/></button><button onClick={() => submit("What should I focus on this week?")}>What should I focus on this week? <ArrowUp size={14}/></button></div></div>}{messages.map((message) => <motion.article className={`message ${message.role}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .3 }} key={message.id}><div className="message-avatar">{message.role === "assistant" ? <span className="mini-glyph">x</span> : "NR"}</div><div className="message-content"><div className="message-meta"><b>{message.role === "assistant" ? "Xai" : "You"}</b><time>{message.time}</time>{message.role === "assistant" && <span className="context-chip"><Sparkles size={10}/> Workspace context</span>}</div><div className="markdown"><MessageBody content={message.content}/></div>{message.role === "assistant" && <div className="message-tools"><button onClick={() => navigator.clipboard?.writeText(message.content)}><Clipboard size={13}/> Copy response</button><button><ShareIcon /> Share</button></div>}</div></motion.article>)}{generating && <motion.div className="message assistant" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><div className="message-avatar"><span className="mini-glyph">x</span></div><div className="message-content"><div className="message-meta"><b>Xai</b><span className="context-chip"><Sparkles size={10}/> Live synthesis</span></div><TypingIndicator/></div></motion.div>}{error && <div className="error-state">Something went wrong while synthesizing this response. <button onClick={() => setError(false)}>Try again</button></div>}<div ref={endRef}/></div></div></main>
+      <div className="composer-wrap"><div className="composer-hint"><span><Zap size={11}/> Xai can make mistakes. Check important info.</span><span>Context: <b>All workspace</b>⌄</span></div><form className="composer" onSubmit={(event) => { event.preventDefault(); submit(); }}><textarea ref={textareaRef} value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } }} placeholder="Ask Xai anything..." rows={1}/><div className="composer-actions"><button type="button" title="Attach file"><Paperclip size={17}/></button><span className="composer-shortcut">Shift + Enter for new line</span><button className={`send-button ${input.trim() ? "ready" : ""}`} type="submit" disabled={!input.trim() || generating} aria-label="Send message"><Send size={16}/></button></div></form></div>
+    </section>
+  </div>;
 }
+
+function ShareIcon() { return <span className="share-icon">↗</span>; }
