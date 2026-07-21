@@ -5,6 +5,31 @@
  */
 
 /**
+ * Chat message type for the conversation
+ */
+export interface ChatMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  time: string;
+}
+
+/**
+ * Request to send to /api/chat
+ */
+export interface ChatRequest {
+  messages: { role: "user" | "assistant"; content: string }[];
+}
+
+/**
+ * Response from /api/chat
+ */
+export interface ChatResponse {
+  message: string;
+  error?: string;
+}
+
+/**
  * Example response type for /api/demo
  */
 export interface DemoResponse {
